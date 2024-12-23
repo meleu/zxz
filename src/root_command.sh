@@ -1,3 +1,2 @@
-echo "# this file is located in 'src/root_command.sh'"
-echo "# you can edit it freely and regenerate (it will not be overwritten)"
-inspect_args
+# shellcheck disable=2154
+curl -F"file=@${args[file]}" https://0x0.st/

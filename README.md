@@ -4,31 +4,39 @@
 
 Information to put in the help/description message:
 
-> File URLs are valid for at least 30 days and up to a year (see <https://0x0.st/> for more details).
+> File URLs are valid for at least 30 days and up to a year
+> (see <https://0x0.st/> for more details).
 >
 > Maximum file size: 512.0 MiB
 
-- [ ] upload a file
+- [x] upload a file
   - `zxz <filename>`
   - `curl -F'file=@yourfile.png' https://0x0.st`
+- [ ] validate the given filename
+- [ ] `--secret` option
+
 - [ ] proper User Agent
   - `zxz/<version - https://github.com/meleu/zxz`
-- [ ] `--secret` option
+
+- [ ] upload to a different 0x0 instance
+  `--server`
+
+- [ ] copy a file from a URL
+  - need to check if the given file is an URL
+  - `zxz <url>`
+  - `curl -F'url=http://example.com/image.jpg' https://0x0.st`
+
 - [ ] managing files
   - save the `X-Token` - `curl -i`
   - `~/.local/share/zxz/uploads.csv`
 - [ ] list uploaded files
   - [ ] `zxz list`
-- [ ] copy a file from a URL
-  - need to check if the given file is an URL
-  - `zxz <url>`
-  - `curl -F'url=http://example.com/image.jpg' https://0x0.st`
-- [ ] upload to a different 0x0 instance
-  `--server`
-- [ ] `--expires` option
+
 - [ ] delete the file
   - `zxz delete <URL>`
   - `curl -Ftoken=token_here -Fdelete= https://0x0.st/abc.txt`
+
+- [ ] `--expires` option
 - [ ] Update expiration
   - `zxz ???` - not sure how to call this command
   - `curl -Ftoken=token_here -Fexpires=3 https://0x0.st/abc.txt`
