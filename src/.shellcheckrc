@@ -1,0 +1,3 @@
+# define that we're using bash even in partial snippets with no shebang
+shell=bash
+

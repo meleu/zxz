@@ -43,6 +43,12 @@ zxz_usage() {
     printf "    A longer and hard-to-guess URL will be generated\n"
     echo
 
+    # :flag.usage
+    printf "  %s\n" "--server, -S SERVER"
+    printf "    Upload to a custom 0x0 instance server\n"
+    printf "    %s\n" "Default: http://0x0.st/"
+    echo
+
     # :command.usage_fixed_flags
     printf "  %s\n" "--help, -h"
     printf "    Show this help\n"
@@ -111,15 +117,6 @@ inspect_args() {
     echo args: none
   fi
 
-  if ((${#other_args[@]})); then
-    echo
-    echo other_args:
-    echo "- \${other_args[*]} = ${other_args[*]}"
-    for i in "${!other_args[@]}"; do
-      echo "- \${other_args[$i]} = ${other_args[$i]}"
-    done
-  fi
-
   if ((${#deps[@]})); then
     readarray -t sorted_keys < <(printf '%s\n' "${!deps[@]}" | sort)
     echo
@@ -143,19 +140,26 @@ inspect_args() {
 # src/lib/upload_file.sh
 upload_file() {
   local curl_args=(
-    --user-agent "${user_agent}"
-    "--form file=@${args[file]}"
+    --user-agent "${USER_AGENT}"
+    --form "file=@${ARGS[file]}"
   )
+  local host="${ARGS[--server]}"
 
-  [[ "${args[--secret]}" = 1 ]] && curl_args+=("--form secret=")
+  [[ "${ARGS[--secret]}" = 1 ]] && curl_args+=(--form secret=)
 
   set -x
-  echo curl "${curl_args[@]}" "https://0x0.st/"
+  curl "${curl_args[@]}" "$host"
 }
 
 # src/lib/validations/validate_file_exists.sh
 validate_file_exists() {
   [[ -f "$1" ]] || echo "must be an existing file"
+}
+
+# src/lib/validations/validate_http_url.sh
+validate_http_url() {
+  local regex_http_url="^https?://[^[:space:]/$.?#].[^[:space:]]*$"
+  [[ $1 =~ $regex_http_url ]] || echo "must be a valid http URL"
 }
 
 # :command.command_functions
@@ -185,10 +189,16 @@ parse_requirements() {
   done
 
   # :command.dependencies_filter
-  if command -v curl >/dev/null 2>&1; then
-    deps['curl']="$(command -v curl | head -n1)"
-  else
+  missing_deps=
+  # :dependency.filter
+  if ! command -v curl >/dev/null 2>&1; then
     printf "missing dependency: curl\n" >&2
+    missing_deps=1
+  else
+    deps['curl']="$(command -v curl | head -n1)"
+  fi
+
+  if [[ -n $missing_deps ]]; then
     exit 1
   fi
 
@@ -205,6 +215,20 @@ parse_requirements() {
         # :flag.case_no_arg
         args['--secret']=1
         shift
+        ;;
+
+      # :flag.case
+      --server | -S)
+
+        # :flag.case_arg
+        if [[ -n ${2+x} ]]; then
+          args['--server']="$2"
+          shift
+          shift
+        else
+          printf "%s\n" "--server requires an argument: --server, -S SERVER" >&2
+          exit 1
+        fi
         ;;
 
       -?*)
@@ -228,6 +252,7 @@ parse_requirements() {
 
     esac
   done
+
   # :command.required_args_filter
   if [[ -z ${args['file']+x} ]]; then
     printf "missing required argument: FILE\nusage: zxz FILE [OPTIONS]\n" >&2
@@ -235,10 +260,19 @@ parse_requirements() {
     exit 1
   fi
 
+  # :command.default_assignments
+  [[ -n ${args['--server']:-} ]] || args['--server']="http://0x0.st/"
+
   # :command.validations
   # :argument.validations
   if [[ -v args['file'] && -n $(validate_file_exists "${args['file']:-}") ]]; then
     printf "validation error in %s:\n%s\n" "FILE" "$(validate_file_exists "${args['file']:-}")" >&2
+    exit 1
+  fi
+
+  # :flag.validations
+  if [[ -v args['--server'] && -n $(validate_http_url "${args['--server']:-}") ]]; then
+    printf "validation error in %s:\n%s\n" "--server, -S SERVER" "$(validate_http_url "${args['--server']:-}")" >&2
     exit 1
   fi
 
@@ -252,7 +286,11 @@ initialize() {
 
   # :command.variables
   # :variable.definition
-  declare -g user_agent="zxz/$version - https://github.com/meleu/zxz"
+  declare -g USER_AGENT="zxz/$version - https://github.com/meleu/zxz"
+
+  # src/initialize.sh
+  # shellcheck disable=2034
+  declare -gn ARGS=args
 
 }
 
@@ -260,7 +298,6 @@ initialize() {
 run() {
   declare -g -A args=()
   declare -g -A deps=()
-  declare -g -a other_args=()
   declare -g -a env_var_names=()
   declare -g -a input=()
   normalize_input "$@"

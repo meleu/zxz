@@ -10,7 +10,7 @@ args:
   - name: file
     required: true
     help: file to upload
-    # runs `validate_file_exists`
+    # runs `validate_file_exists ${args[file]}`
     validate: file_exists
 
 flags:
@@ -19,9 +19,18 @@ flags:
     short: -s
     help: A longer and hard-to-guess URL will be generated
 
+  # if used, `${args[--server] == <SERVER>`
+  - long: --server
+    short: -S
+    arg: server
+    default: "http://0x0.st/"
+    help: Upload to a custom 0x0 instance server
+    # runs `validate_http_url ${args[--server]}`
+    validate: http_url
+
 examples:
   - zxz <filename>
 
 variables:
-  - name: user_agent
+  - name: USER_AGENT
     value: zxz/$version - https://github.com/meleu/zxz
