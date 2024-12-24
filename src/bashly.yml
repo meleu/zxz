@@ -21,3 +21,7 @@ flags:
 
 examples:
   - zxz <filename>
+
+variables:
+  - name: user_agent
+    value: zxz/$version - https://github.com/meleu/zxz

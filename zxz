@@ -12,7 +12,7 @@ fi
 # :command.root_command
 root_command() {
   # src/root_command.sh
-  inspect_args && exit
+  # inspect_args && exit
 
   upload_file
 
@@ -143,12 +143,14 @@ inspect_args() {
 # src/lib/upload_file.sh
 upload_file() {
   local curl_args=(
-    "-Ffile=@${args[file]}"
+    --user-agent "${user_agent}"
+    "--form file=@${args[file]}"
   )
 
-  [[ "${args[--secret]}" = 1 ]] && curl_args+=("-Fsecret=")
+  [[ "${args[--secret]}" = 1 ]] && curl_args+=("--form secret=")
 
-  curl "${curl_args[@]}" "https://0x0.st/"
+  set -x
+  echo curl "${curl_args[@]}" "https://0x0.st/"
 }
 
 # src/lib/validations/validate_file_exists.sh
@@ -244,9 +246,13 @@ parse_requirements() {
 
 # :command.initialize
 initialize() {
-  version="0.0.2"
+  version="0.0.3"
   long_usage=''
   set -e
+
+  # :command.variables
+  # :variable.definition
+  declare -g user_agent="zxz/$version - https://github.com/meleu/zxz"
 
 }
 
