@@ -1,15 +1,23 @@
 name: zxz
 help: a CLI to interact with <https://0x0.st/>
-version: 0.0.2
+version: 0.0.3
 
 dependencies:
   - curl
 
 args:
+  # accessible via `${args[file]}`
   - name: file
     required: true
     help: file to upload
+    # runs `validate_file_exists`
     validate: file_exists
+
+flags:
+  # if used, `${args[--secret]} == 1`
+  - long: --secret
+    short: -s
+    help: A longer and hard-to-guess URL will be generated
 
 examples:
   - zxz <filename>

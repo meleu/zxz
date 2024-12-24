@@ -12,8 +12,9 @@ fi
 # :command.root_command
 root_command() {
   # src/root_command.sh
-  # shellcheck disable=2154
-  curl -F"file=@${args[file]}" https://0x0.st/
+  inspect_args && exit
+
+  upload_file
 
 }
 
@@ -27,7 +28,7 @@ zxz_usage() {
   printf "zxz - a CLI to interact with <https://0x0.st/>\n\n"
 
   printf "%s\n" "Usage:"
-  printf "  zxz FILE\n"
+  printf "  zxz FILE [OPTIONS]\n"
   printf "  zxz --help | -h\n"
   printf "  zxz --version | -v\n"
   echo
@@ -35,6 +36,12 @@ zxz_usage() {
   # :command.long_usage
   if [[ -n "$long_usage" ]]; then
     printf "%s\n" "Options:"
+
+    # :command.usage_flags
+    # :flag.usage
+    printf "  %s\n" "--secret, -s"
+    printf "    A longer and hard-to-guess URL will be generated\n"
+    echo
 
     # :command.usage_fixed_flags
     printf "  %s\n" "--help, -h"
@@ -133,6 +140,17 @@ inspect_args() {
 }
 
 # :command.user_lib
+# src/lib/upload_file.sh
+upload_file() {
+  local curl_args=(
+    "-Ffile=@${args[file]}"
+  )
+
+  [[ "${args[--secret]}" = 1 ]] && curl_args+=("-Fsecret=")
+
+  curl "${curl_args[@]}" "https://0x0.st/"
+}
+
 # src/lib/validations/validate_file_exists.sh
 validate_file_exists() {
   [[ -f "$1" ]] || echo "must be an existing file"
@@ -179,6 +197,13 @@ parse_requirements() {
   while [[ $# -gt 0 ]]; do
     key="$1"
     case "$key" in
+      # :flag.case
+      --secret | -s)
+
+        # :flag.case_no_arg
+        args['--secret']=1
+        shift
+        ;;
 
       -?*)
         printf "invalid option: %s\n" "$key" >&2
@@ -203,7 +228,7 @@ parse_requirements() {
   done
   # :command.required_args_filter
   if [[ -z ${args['file']+x} ]]; then
-    printf "missing required argument: FILE\nusage: zxz FILE\n" >&2
+    printf "missing required argument: FILE\nusage: zxz FILE [OPTIONS]\n" >&2
 
     exit 1
   fi
@@ -219,7 +244,7 @@ parse_requirements() {
 
 # :command.initialize
 initialize() {
-  version="0.0.1"
+  version="0.0.2"
   long_usage=''
   set -e
 
