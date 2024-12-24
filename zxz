@@ -132,6 +132,12 @@ inspect_args() {
   fi
 }
 
+# :command.user_lib
+# src/lib/validations/validate_file_exists.sh
+validate_file_exists() {
+  [[ -f "$1" ]] || echo "must be an existing file"
+}
+
 # :command.command_functions
 
 # :command.parse_requirements
@@ -199,6 +205,13 @@ parse_requirements() {
   if [[ -z ${args['file']+x} ]]; then
     printf "missing required argument: FILE\nusage: zxz FILE\n" >&2
 
+    exit 1
+  fi
+
+  # :command.validations
+  # :argument.validations
+  if [[ -v args['file'] && -n $(validate_file_exists "${args['file']:-}") ]]; then
+    printf "validation error in %s:\n%s\n" "FILE" "$(validate_file_exists "${args['file']:-}")" >&2
     exit 1
   fi
 

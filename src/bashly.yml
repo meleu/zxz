@@ -1,6 +1,6 @@
 name: zxz
 help: a CLI to interact with <https://0x0.st/>
-version: 0.0.1
+version: 0.0.2
 
 dependencies:
   - curl
@@ -9,6 +9,7 @@ args:
   - name: file
     required: true
     help: file to upload
+    validate: file_exists
 
 examples:
   - zxz <filename>
