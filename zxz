@@ -139,16 +139,63 @@ inspect_args() {
 # :command.user_lib
 # src/lib/upload_file.sh
 upload_file() {
-  local curl_args=(
-    --user-agent "${USER_AGENT}"
-    --form "file=@${ARGS[file]}"
-  )
+  local file="${ARGS[file]}"
   local host="${ARGS[--server]}"
+  local uploaded_file_url
+  # shellcheck disable=2155
+  local response_header_file="$(mktemp)"
+  local curl_args=(
+    --silent
+    --user-agent "$USER_AGENT"
+    --dump-header "$response_header_file"
+    --form "file=@$file"
+  )
 
   [[ "${ARGS[--secret]}" = 1 ]] && curl_args+=(--form secret=)
 
-  set -x
-  curl "${curl_args[@]}" "$host"
+  uploaded_file_url="$(curl "${curl_args[@]}" "$host")"
+  echo "$uploaded_file_url"
+
+  log_uploaded_file "$response_header_file" "$file" "$uploaded_file_url"
+  rm -f "$response_header_file"
+}
+
+log_uploaded_file() {
+  local header_file="$1"
+  local file="$2"
+  local url="$3"
+  # if this file was already uploaded to the same URL, no need to log it again
+  grep -qF "${file};${url}" "$LOG_FILE" && return
+
+  local token
+  local expiration_ms
+  local expiration_seconds
+  local expiration_time
+  local date_format="%Y-%m-%d %H:%M:%S %z"
+
+  token="$(get_header_value "$header_file" "X-Token")"
+  expiration_ms="$(get_header_value "$header_file" "X-Expires")"
+
+  expiration_seconds="$((expiration_ms / 1000))"
+  expiration_time="$(date -d "@$expiration_seconds" +"$date_format")"
+  uploaded_at="$(date +"$date_format")"
+
+  echo "${file};${url};${token};${uploaded_at};${expiration_time}" >> "$LOG_FILE"
+}
+
+get_header_value() {
+  local file="$1"
+  local header_name="$2"
+  local header_value
+  local line
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" != "${header_name}: "* ]] && continue
+    header_value="${line#"$header_name: "}"
+    header_value="${header_value%$'\r'}" # remove trailing '\r'
+  done < "$file"
+
+  echo "$header_value"
 }
 
 # src/lib/validations/validate_file_exists.sh
@@ -196,6 +243,14 @@ parse_requirements() {
     missing_deps=1
   else
     deps['curl']="$(command -v curl | head -n1)"
+  fi
+
+  # :dependency.filter
+  if ! command -v date >/dev/null 2>&1; then
+    printf "missing dependency: date\n" >&2
+    missing_deps=1
+  else
+    deps['date']="$(command -v date | head -n1)"
   fi
 
   if [[ -n $missing_deps ]]; then
@@ -288,18 +343,27 @@ initialize() {
   # :variable.definition
   declare -g USER_AGENT="zxz/$version - https://github.com/meleu/zxz"
 
-  # src/initialize.sh
-  # shellcheck disable=2034
+  # :variable.definition
+  declare -g LOG_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/zxz"
+
+  # :variable.definition
+  declare -g LOG_FILE="${LOG_DIR}/uploads.log"
+
+  # :command.globals
+  declare -g -A args=()
+  declare -g -A deps=()
+  declare -g -a env_var_names=()
+  declare -g -a input=()
+
   declare -gn ARGS=args
+
+  # src/initialize.sh
+  mkdir -p "$LOG_DIR"
 
 }
 
 # :command.run
 run() {
-  declare -g -A args=()
-  declare -g -A deps=()
-  declare -g -a env_var_names=()
-  declare -g -a input=()
   normalize_input "$@"
   parse_requirements "${input[@]}"
 

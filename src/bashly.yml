@@ -4,6 +4,7 @@ version: 0.0.3
 
 dependencies:
   - curl
+  - date
 
 args:
   # accessible via `${args[file]}`
@@ -34,3 +35,7 @@ examples:
 variables:
   - name: USER_AGENT
     value: zxz/$version - https://github.com/meleu/zxz
+  - name: LOG_DIR
+    value: "${XDG_DATA_HOME:-${HOME}/.local/share}/zxz"
+  - name: LOG_FILE
+    value: "${LOG_DIR}/uploads.log"
