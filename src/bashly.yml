@@ -5,29 +5,39 @@ version: 0.0.3
 dependencies:
   - curl
   - date
+  - gum
 
-args:
-  # accessible via `${args[file]}`
-  - name: file
-    required: true
-    help: file to upload
-    # runs `validate_file_exists ${args[file]}`
-    validate: file_exists
+commands:
+  - name: upload
+    help: Upload FILE to https://0x0.st/
+    default: true
 
-flags:
-  # if used, `${args[--secret]} == 1`
-  - long: --secret
-    short: -s
-    help: A longer and hard-to-guess URL will be generated
+    args:
+      # accessible via `${args[file]}`
+      - name: file
+        required: true
+        help: file to upload
+        # runs `validate_file_exists ${args[file]}`
+        validate: file_exists
 
-  # if used, `${args[--server] == <SERVER>`
-  - long: --server
-    short: -S
-    arg: server
-    default: "http://0x0.st/"
-    help: Upload to a custom 0x0 instance server
-    # runs `validate_http_url ${args[--server]}`
-    validate: http_url
+    flags:
+      # if used, `${args[--secret]} == 1`
+      - long: --secret
+        short: -s
+        help: A longer and hard-to-guess URL will be generated
+
+      # if used, `${args[--server] == <SERVER>`
+      - long: --server
+        short: -S
+        arg: server
+        default: "https://0x0.st/"
+        help: Upload to a custom 0x0 instance server
+        # runs `validate_http_url ${args[--server]}`
+        validate: http_url
+
+  - name: list
+    alias: [ls, l]
+    help: List the files you already uploaded
 
 examples:
   - zxz <filename>

@@ -9,14 +9,6 @@ if [[ "${BASH_VERSINFO:-0}" -lt 4 ]]; then
 fi
 
 # :command.master_script
-# :command.root_command
-root_command() {
-  # src/root_command.sh
-  # inspect_args && exit
-
-  upload_file
-
-}
 
 # :command.version_command
 version_command() {
@@ -28,9 +20,43 @@ zxz_usage() {
   printf "zxz - a CLI to interact with <https://0x0.st/>\n\n"
 
   printf "%s\n" "Usage:"
-  printf "  zxz FILE [OPTIONS]\n"
-  printf "  zxz --help | -h\n"
+  printf "  zxz COMMAND\n"
+  printf "  zxz [COMMAND] --help | -h\n"
   printf "  zxz --version | -v\n"
+  echo
+  # :command.usage_commands
+  printf "%s\n" "Commands:"
+  printf "  %s   Upload FILE to https://0x0.st/ (default)\n" "upload"
+  printf "  %s   List the files you already uploaded\n" "list  "
+  echo
+
+  # :command.long_usage
+  if [[ -n "$long_usage" ]]; then
+    printf "%s\n" "Options:"
+
+    # :command.usage_fixed_flags
+    printf "  %s\n" "--help, -h"
+    printf "    Show this help\n"
+    echo
+    printf "  %s\n" "--version, -v"
+    printf "    Show version number\n"
+    echo
+
+    # :command.usage_examples
+    printf "%s\n" "Examples:"
+    printf "  zxz <filename>\n"
+    echo
+
+  fi
+}
+
+# :command.usage
+zxz_upload_usage() {
+  printf "zxz upload - Upload FILE to https://0x0.st/\n\n"
+
+  printf "%s\n" "Usage:"
+  printf "  zxz [upload] FILE [OPTIONS]\n"
+  printf "  zxz upload --help | -h\n"
   echo
 
   # :command.long_usage
@@ -46,15 +72,12 @@ zxz_usage() {
     # :flag.usage
     printf "  %s\n" "--server, -S SERVER"
     printf "    Upload to a custom 0x0 instance server\n"
-    printf "    %s\n" "Default: http://0x0.st/"
+    printf "    %s\n" "Default: https://0x0.st/"
     echo
 
     # :command.usage_fixed_flags
     printf "  %s\n" "--help, -h"
     printf "    Show this help\n"
-    echo
-    printf "  %s\n" "--version, -v"
-    printf "    Show version number\n"
     echo
 
     # :command.usage_args
@@ -65,9 +88,27 @@ zxz_usage() {
     printf "    file to upload\n"
     echo
 
-    # :command.usage_examples
-    printf "%s\n" "Examples:"
-    printf "  zxz <filename>\n"
+  fi
+}
+
+# :command.usage
+zxz_list_usage() {
+  printf "zxz list - List the files you already uploaded\n\n"
+  printf "Alias: ls, l\n"
+  echo
+
+  printf "%s\n" "Usage:"
+  printf "  zxz list\n"
+  printf "  zxz list --help | -h\n"
+  echo
+
+  # :command.long_usage
+  if [[ -n "$long_usage" ]]; then
+    printf "%s\n" "Options:"
+
+    # :command.usage_fixed_flags
+    printf "  %s\n" "--help, -h"
+    printf "    Show this help\n"
     echo
 
   fi
@@ -137,29 +178,7 @@ inspect_args() {
 }
 
 # :command.user_lib
-# src/lib/upload_file.sh
-upload_file() {
-  local file="${ARGS[file]}"
-  local host="${ARGS[--server]}"
-  local uploaded_file_url
-  # shellcheck disable=2155
-  local response_header_file="$(mktemp)"
-  local curl_args=(
-    --silent
-    --user-agent "$USER_AGENT"
-    --dump-header "$response_header_file"
-    --form "file=@$file"
-  )
-
-  [[ "${ARGS[--secret]}" = 1 ]] && curl_args+=(--form secret=)
-
-  uploaded_file_url="$(curl "${curl_args[@]}" "$host")"
-  echo "$uploaded_file_url"
-
-  log_uploaded_file "$response_header_file" "$file" "$uploaded_file_url"
-  rm -f "$response_header_file"
-}
-
+# src/lib/log_file_operations.sh
 log_uploaded_file() {
   local header_file="$1"
   local file="$2"
@@ -198,6 +217,36 @@ get_header_value() {
   echo "$header_value"
 }
 
+list_uploaded_files() {
+  # csv format is:
+  # file; url; token; uploaded_at; expiration_time
+  cut -d\; -f1-2,4 "$LOG_FILE" \
+    | gum table -s\; --height 10 -b rounded -p
+}
+
+# src/lib/upload_file.sh
+upload_file() {
+  local file="${ARGS[file]}"
+  local host="${ARGS[--server]}"
+  local uploaded_file_url
+  # shellcheck disable=2155
+  local response_header_file="$(mktemp)"
+  local curl_args=(
+    --silent
+    --user-agent "$USER_AGENT"
+    --dump-header "$response_header_file"
+    --form "file=@$file"
+  )
+
+  [[ "${ARGS[--secret]}" = 1 ]] && curl_args+=(--form secret=)
+
+  uploaded_file_url="$(curl "${curl_args[@]}" "$host")"
+  echo "$uploaded_file_url"
+
+  log_uploaded_file "$response_header_file" "$file" "$uploaded_file_url"
+  rm -f "$response_header_file"
+}
+
 # src/lib/validations/validate_file_exists.sh
 validate_file_exists() {
   [[ -f "$1" ]] || echo "must be an existing file"
@@ -210,6 +259,23 @@ validate_http_url() {
 }
 
 # :command.command_functions
+# :command.function
+zxz_upload_command() {
+
+  # src/upload_command.sh
+  # inspect_args && exit
+
+  upload_file
+
+}
+
+# :command.function
+zxz_list_command() {
+
+  # src/list_command.sh
+  list_uploaded_files
+
+}
 
 # :command.parse_requirements
 parse_requirements() {
@@ -253,12 +319,95 @@ parse_requirements() {
     deps['date']="$(command -v date | head -n1)"
   fi
 
+  # :dependency.filter
+  if ! command -v gum >/dev/null 2>&1; then
+    printf "missing dependency: gum\n" >&2
+    missing_deps=1
+  else
+    deps['gum']="$(command -v gum | head -n1)"
+  fi
+
   if [[ -n $missing_deps ]]; then
     exit 1
   fi
 
   # :command.command_filter
-  action="root"
+  action=${1:-}
+
+  case $action in
+
+    upload)
+      action="upload"
+      shift
+      zxz_upload_parse_requirements "$@"
+      shift $#
+      ;;
+
+    list | ls | l)
+      action="list"
+      shift
+      zxz_list_parse_requirements "$@"
+      shift $#
+      ;;
+
+    # :command.command_fallback
+    "")
+      zxz_usage >&2
+      exit 1
+      ;;
+
+    *)
+      action="upload"
+      zxz_upload_parse_requirements "$@"
+      shift $#
+      ;;
+
+  esac
+
+  # :command.parse_requirements_while
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+
+      -?*)
+        printf "invalid option: %s\n" "$key" >&2
+        exit 1
+        ;;
+
+      *)
+        # :command.parse_requirements_case
+        # :command.parse_requirements_case_simple
+        printf "invalid argument: %s\n" "$key" >&2
+        exit 1
+
+        ;;
+
+    esac
+  done
+
+}
+
+# :command.parse_requirements
+zxz_upload_parse_requirements() {
+  # :command.fixed_flags_filter
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+      --help | -h)
+        long_usage=yes
+        zxz_upload_usage
+        exit
+        ;;
+
+      *)
+        break
+        ;;
+
+    esac
+  done
+
+  # :command.command_filter
+  action="upload"
 
   # :command.parse_requirements_while
   while [[ $# -gt 0 ]]; do
@@ -310,13 +459,13 @@ parse_requirements() {
 
   # :command.required_args_filter
   if [[ -z ${args['file']+x} ]]; then
-    printf "missing required argument: FILE\nusage: zxz FILE [OPTIONS]\n" >&2
+    printf "missing required argument: FILE\nusage: zxz [upload] FILE [OPTIONS]\n" >&2
 
     exit 1
   fi
 
   # :command.default_assignments
-  [[ -n ${args['--server']:-} ]] || args['--server']="http://0x0.st/"
+  [[ -n ${args['--server']:-} ]] || args['--server']="https://0x0.st/"
 
   # :command.validations
   # :argument.validations
@@ -330,6 +479,51 @@ parse_requirements() {
     printf "validation error in %s:\n%s\n" "--server, -S SERVER" "$(validate_http_url "${args['--server']:-}")" >&2
     exit 1
   fi
+
+}
+
+# :command.parse_requirements
+zxz_list_parse_requirements() {
+  # :command.fixed_flags_filter
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+      --help | -h)
+        long_usage=yes
+        zxz_list_usage
+        exit
+        ;;
+
+      *)
+        break
+        ;;
+
+    esac
+  done
+
+  # :command.command_filter
+  action="list"
+
+  # :command.parse_requirements_while
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+
+      -?*)
+        printf "invalid option: %s\n" "$key" >&2
+        exit 1
+        ;;
+
+      *)
+        # :command.parse_requirements_case
+        # :command.parse_requirements_case_simple
+        printf "invalid argument: %s\n" "$key" >&2
+        exit 1
+
+        ;;
+
+    esac
+  done
 
 }
 
@@ -368,7 +562,8 @@ run() {
   parse_requirements "${input[@]}"
 
   case "$action" in
-    "root") root_command ;;
+    "upload") zxz_upload_command ;;
+    "list") zxz_list_command ;;
   esac
 }
 
