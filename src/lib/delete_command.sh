@@ -18,26 +18,26 @@ delete_command() {
     --form delete= \
     "$chosen_url"
 
-  confirm_url_not_available "$chosen_url"
-  remove_url_from_log "$chosen_url"
+  confirm_url_available "$chosen_url" \
+    || remove_url_from_log "$chosen_url"
 }
 
-confirm_url_not_available() {
+confirm_url_available() {
   local url="$1"
   local response_status
 
   response_status="$(url_http_status "$url")"
 
   case "$response_status" in
-    404)
-      echo "[success] The file was successfully deleted from server."
+    200)
+      echo "- <$url>: is still available." >&2
       return 0
       ;;
-    200)
-      echo "[fail] The URL is still available."
+    404)
+      echo "- <$url>: resource not found in the server (HTTP status ${response_status})." >&2
       ;;
     *)
-      echo "[fail] Unable to confirm the deletion (returned HTTP status ${response_status})."
+      echo "- <$url>: returned HTTP status ${response_status}." >&2
       ;;
   esac
 

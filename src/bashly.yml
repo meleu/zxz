@@ -38,6 +38,10 @@ commands:
   - name: list
     alias: [ls, l]
     help: List the files you already uploaded
+    flags:
+      - long: --update
+        short: -u
+        help: Update the list of uploaded files removing the unavailable ones.
 
   - name: delete
     alias: [del, d]
