@@ -1,38 +1,41 @@
 name: zxz
 help: a CLI to interact with <https://0x0.st/>
-version: 0.0.3
+version: 0.1.0
+footer: |
+  Credits:
+    zxz repository: https://github.com/meleu/zxz
+
+    The https://0x0.st/ is a service maintained by Mia Herkt,
+    consider supporting them financially (check the webpage).
 
 dependencies:
   - curl
-  - date
   - gum
+  - cut
+  - date
+  - grep
 
 commands:
   - name: upload
-    help: Upload FILE to https://0x0.st/
+    help: "Upload FILE to https://0x0.st/"
     default: true
 
     args:
-      # accessible via `${args[file]}`
       - name: file
         required: true
-        help: file to upload
-        # runs `validate_file_exists ${args[file]}`
+        help: "file to upload (max file size: 512MB)"
         validate: file_exists
 
     flags:
-      # if used, `${args[--secret]} == 1`
       - long: --secret
         short: -s
-        help: A longer and hard-to-guess URL will be generated
+        help: Ask the server to generate a longer and hard-to-guess URL
 
-      # if used, `${args[--server] == <SERVER>`
       - long: --server
         short: -S
         arg: server
         default: "https://0x0.st/"
         help: Upload to a custom 0x0 instance server
-        # runs `validate_http_url ${args[--server]}`
         validate: http_url
 
   - name: list

@@ -12,34 +12,35 @@ Information to put in the help/description message:
 - [x] upload a file
   - `zxz <filename>`
   - `curl -F'file=@yourfile.png' https://0x0.st`
-- [ ] validate the given filename
-- [ ] `--secret` option
+- [x] validate the given filename
+- [x] `--secret` option
 
-- [ ] proper User Agent
+- [x] proper User Agent
   - `zxz/<version - https://github.com/meleu/zxz`
 
-- [ ] upload to a different 0x0 instance
+- [x] upload to a different 0x0 instance
   `--server`
 
-- [ ] copy a file from a URL
-  - need to check if the given file is an URL
-  - `zxz <url>`
-  - `curl -F'url=http://example.com/image.jpg' https://0x0.st`
-
-- [ ] managing files
+- [x] managing files
   - save the `X-Token` - `curl -i`
   - `~/.local/share/zxz/uploads.csv`
-- [ ] list uploaded files
-  - [ ] `zxz list`
+- [x] list uploaded files
+  - [x] `zxz list`
+  - [x] `zxz list --update`
 
-- [ ] delete the file
+- [x] delete the file
   - `zxz delete <URL>`
   - `curl -Ftoken=token_here -Fdelete= https://0x0.st/abc.txt`
 
-- [ ] `--expires` option
+- [ ] ~~`--expires` option~~ I'm not interested on this (too much work for low value)
 - [ ] Update expiration
   - `zxz ???` - not sure how to call this command
   - `curl -Ftoken=token_here -Fexpires=3 https://0x0.st/abc.txt`
+
+- [ ] ~~copy a file from a URL~~ This feature doesn't work well on the server side
+  - need to check if the given file is an URL
+  - `zxz <url>`
+  - `curl -F'url=http://example.com/image.jpg' https://0x0.st`
 
 ```bash
 url_regex="^(https?|ftp)://[^\s/$.?#].[^\s]*$"

@@ -48,6 +48,10 @@ zxz_usage() {
     printf "  zxz <filename>\n"
     echo
 
+    # :command.footer
+    printf "Credits:\n  zxz repository: https://github.com/meleu/zxz\n\n  The https://0x0.st/ is a service maintained by Mia Herkt,\n  consider supporting them financially (check the webpage).\n\n"
+    echo
+
   fi
 }
 
@@ -67,7 +71,7 @@ zxz_upload_usage() {
     # :command.usage_flags
     # :flag.usage
     printf "  %s\n" "--secret, -s"
-    printf "    A longer and hard-to-guess URL will be generated\n"
+    printf "    Ask the server to generate a longer and hard-to-guess URL\n"
     echo
 
     # :flag.usage
@@ -86,7 +90,7 @@ zxz_upload_usage() {
 
     # :argument.usage
     printf "  %s\n" "FILE"
-    printf "    file to upload\n"
+    printf "    file to upload (max file size: 512MB)\n"
     echo
 
   fi
@@ -480,6 +484,22 @@ parse_requirements() {
   fi
 
   # :dependency.filter
+  if ! command -v gum >/dev/null 2>&1; then
+    printf "missing dependency: gum\n" >&2
+    missing_deps=1
+  else
+    deps['gum']="$(command -v gum | head -n1)"
+  fi
+
+  # :dependency.filter
+  if ! command -v cut >/dev/null 2>&1; then
+    printf "missing dependency: cut\n" >&2
+    missing_deps=1
+  else
+    deps['cut']="$(command -v cut | head -n1)"
+  fi
+
+  # :dependency.filter
   if ! command -v date >/dev/null 2>&1; then
     printf "missing dependency: date\n" >&2
     missing_deps=1
@@ -488,11 +508,11 @@ parse_requirements() {
   fi
 
   # :dependency.filter
-  if ! command -v gum >/dev/null 2>&1; then
-    printf "missing dependency: gum\n" >&2
+  if ! command -v grep >/dev/null 2>&1; then
+    printf "missing dependency: grep\n" >&2
     missing_deps=1
   else
-    deps['gum']="$(command -v gum | head -n1)"
+    deps['grep']="$(command -v grep | head -n1)"
   fi
 
   if [[ -n $missing_deps ]]; then
@@ -756,9 +776,9 @@ zxz_delete_parse_requirements() {
 
 # :command.initialize
 initialize() {
-  version="0.0.3"
+  version="0.1.0"
   long_usage=''
-  set -e
+  set -Eeo pipefail
 
   # :command.variables
   # :variable.definition
