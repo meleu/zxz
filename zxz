@@ -28,6 +28,7 @@ zxz_usage() {
   printf "%s\n" "Commands:"
   printf "  %s   Upload FILE to https://0x0.st/ (default)\n" "upload"
   printf "  %s   List the files you already uploaded\n" "list  "
+  printf "  %s   Delete an uploaded file from the remote server.\n" "delete"
   echo
 
   # :command.long_usage
@@ -114,6 +115,29 @@ zxz_list_usage() {
   fi
 }
 
+# :command.usage
+zxz_delete_usage() {
+  printf "zxz delete - Delete an uploaded file from the remote server.\n\n"
+  printf "Alias: del, d\n"
+  echo
+
+  printf "%s\n" "Usage:"
+  printf "  zxz delete\n"
+  printf "  zxz delete --help | -h\n"
+  echo
+
+  # :command.long_usage
+  if [[ -n "$long_usage" ]]; then
+    printf "%s\n" "Options:"
+
+    # :command.usage_fixed_flags
+    printf "  %s\n" "--help, -h"
+    printf "    Show this help\n"
+    echo
+
+  fi
+}
+
 # :command.normalize_input
 # :command.normalize_input_function
 normalize_input() {
@@ -178,13 +202,84 @@ inspect_args() {
 }
 
 # :command.user_lib
+# src/lib/delete_command.sh
+delete_command() {
+  local chosen_url
+  local token
+
+  printf "\nChoose the file to be deleted:\n\n"
+
+  # get the url and the token
+  chosen_url="$(pick_url_from_log)" || return $?
+  token="$(get_url_token_from_log "${chosen_url}")"
+  if [[ -z "$token" ]]; then
+    echo "[error] Unable to get the X-Token for $chosen_url"
+    return 1
+  fi
+
+  "${CURL[@]}" \
+    --output /dev/null \
+    --form token="$token" \
+    --form delete= \
+    "$chosen_url"
+
+  confirm_url_not_available "$chosen_url"
+  remove_url_from_log "$chosen_url"
+}
+
+confirm_url_not_available() {
+  local url="$1"
+  local response_status
+
+  response_status="$(url_http_status "$url")"
+
+  case "$response_status" in
+    404)
+      echo "[success] The file was successfully deleted from server."
+      return 0
+      ;;
+    200)
+      echo "[fail] The URL is still available."
+      ;;
+    *)
+      echo "[fail] Unable to confirm the deletion (returned HTTP status ${response_status})."
+      ;;
+  esac
+
+  return 1
+}
+
+# Returns true if a request to the given URL returns 404 HTTP status,
+# otherwise returns false.
+url_http_status() {
+  local url="$1"
+
+  # getting only the headers and getting the http status code
+  "${CURL[@]}" --head "$url" \
+    | head -1 \
+    | cut -d' ' -f2
+}
+
+# src/lib/gum_commands.sh
+gum_spinner() {
+  local message="$1"
+  shift
+  local command=("$@")
+
+  gum spin \
+    --title "$message" \
+    --spinner points \
+    --show-output \
+    -- "${command[@]}"
+}
+
 # src/lib/log_file_operations.sh
 log_uploaded_file() {
   local header_file="$1"
   local file="$2"
   local url="$3"
-  # if this file was already uploaded to the same URL, no need to log it again
-  grep -qF "${file};${url}" "$LOG_FILE" && return
+
+  already_logged "$file" "$url" && return
 
   local token
   local expiration_ms
@@ -193,6 +288,8 @@ log_uploaded_file() {
   local date_format="%Y-%m-%d %H:%M:%S %z"
 
   token="$(get_header_value "$header_file" "X-Token")"
+  [[ -z "$token" ]] && echo "[warning] Unable to get the X-Token for this file." >&2
+
   expiration_ms="$(get_header_value "$header_file" "X-Expires")"
 
   expiration_seconds="$((expiration_ms / 1000))"
@@ -200,6 +297,58 @@ log_uploaded_file() {
   uploaded_at="$(date +"$date_format")"
 
   echo "${file};${url};${token};${uploaded_at};${expiration_time}" >> "$LOG_FILE"
+}
+
+already_logged() {
+  local file="$1"
+  local url="$2"
+  grep -qF "${file};${url}" "$LOG_FILE"
+}
+
+remove_url_from_log() {
+  local url="$1"
+  # shellcheck disable=2155
+  local temp_file="$(mktemp)"
+
+  grep -vF ";${url};" "$LOG_FILE" > "$temp_file" \
+    && mv -f "$temp_file" "$LOG_FILE"
+}
+
+print_uploaded_files() {
+  pick_log_line --print
+}
+
+# Show the following information about uploaded files:
+# - filename
+# - url
+# - uploaded_at
+# Arguments given to this function are passed to `gum table`
+pick_log_line() {
+  # CSV format is:
+  # filename; url; token; uploaded_at; expiration_time
+  cut -d';' -f1-2,4 "$LOG_FILE" \
+    | gum table \
+      --separator=';' \
+      --height 10 \
+      --border=rounded \
+      --widths=20,48,25 \
+      "$@"
+}
+
+pick_url_from_log() {
+  local log_line
+
+  log_line="$(pick_log_line)"
+  if [[ -z $log_line ]]; then
+    echo "selection aborted" >&2
+    return 1
+  fi
+  cut -d';' -f2 <<< "$log_line"
+}
+
+get_url_token_from_log() {
+  local url="$1"
+  grep -F ";$url;" "$LOG_FILE" | cut -d';' -f3
 }
 
 get_header_value() {
@@ -217,30 +366,21 @@ get_header_value() {
   echo "$header_value"
 }
 
-list_uploaded_files() {
-  # csv format is:
-  # file; url; token; uploaded_at; expiration_time
-  cut -d\; -f1-2,4 "$LOG_FILE" \
-    | gum table -s\; --height 10 -b rounded -p
-}
-
-# src/lib/upload_file.sh
-upload_file() {
+# src/lib/upload_command.sh
+upload_command() {
   local file="${ARGS[file]}"
   local host="${ARGS[--server]}"
   local uploaded_file_url
   # shellcheck disable=2155
   local response_header_file="$(mktemp)"
   local curl_args=(
-    --silent
-    --user-agent "$USER_AGENT"
     --dump-header "$response_header_file"
     --form "file=@$file"
   )
 
   [[ "${ARGS[--secret]}" = 1 ]] && curl_args+=(--form secret=)
 
-  uploaded_file_url="$(curl "${curl_args[@]}" "$host")"
+  uploaded_file_url="$("${CURL[@]}" "${curl_args[@]}" "$host")"
   echo "$uploaded_file_url"
 
   log_uploaded_file "$response_header_file" "$file" "$uploaded_file_url"
@@ -265,7 +405,7 @@ zxz_upload_command() {
   # src/upload_command.sh
   # inspect_args && exit
 
-  upload_file
+  upload_command
 
 }
 
@@ -273,7 +413,15 @@ zxz_upload_command() {
 zxz_list_command() {
 
   # src/list_command.sh
-  list_uploaded_files
+  print_uploaded_files
+
+}
+
+# :command.function
+zxz_delete_command() {
+
+  # src/delete_command.sh
+  delete_command
 
 }
 
@@ -347,6 +495,13 @@ parse_requirements() {
       action="list"
       shift
       zxz_list_parse_requirements "$@"
+      shift $#
+      ;;
+
+    delete | del | d)
+      action="delete"
+      shift
+      zxz_delete_parse_requirements "$@"
       shift $#
       ;;
 
@@ -527,6 +682,51 @@ zxz_list_parse_requirements() {
 
 }
 
+# :command.parse_requirements
+zxz_delete_parse_requirements() {
+  # :command.fixed_flags_filter
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+      --help | -h)
+        long_usage=yes
+        zxz_delete_usage
+        exit
+        ;;
+
+      *)
+        break
+        ;;
+
+    esac
+  done
+
+  # :command.command_filter
+  action="delete"
+
+  # :command.parse_requirements_while
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case "$key" in
+
+      -?*)
+        printf "invalid option: %s\n" "$key" >&2
+        exit 1
+        ;;
+
+      *)
+        # :command.parse_requirements_case
+        # :command.parse_requirements_case_simple
+        printf "invalid argument: %s\n" "$key" >&2
+        exit 1
+
+        ;;
+
+    esac
+  done
+
+}
+
 # :command.initialize
 initialize() {
   version="0.0.3"
@@ -554,6 +754,11 @@ initialize() {
   # src/initialize.sh
   mkdir -p "$LOG_DIR"
 
+  export CURL=(
+    gum_spinner "Sending HTTP request..."
+    curl --silent --user-agent "$USER_AGENT"
+  )
+
 }
 
 # :command.run
@@ -564,6 +769,7 @@ run() {
   case "$action" in
     "upload") zxz_upload_command ;;
     "list") zxz_list_command ;;
+    "delete") zxz_delete_command ;;
   esac
 }
 

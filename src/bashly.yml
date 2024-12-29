@@ -39,6 +39,10 @@ commands:
     alias: [ls, l]
     help: List the files you already uploaded
 
+  - name: delete
+    alias: [del, d]
+    help: Delete an uploaded file from the remote server.
+
 examples:
   - zxz <filename>
 

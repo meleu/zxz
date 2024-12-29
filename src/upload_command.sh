@@ -1,3 +1,1 @@
-# inspect_args && exit
-
-upload_file
+upload_command

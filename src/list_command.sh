@@ -1,1 +1,1 @@
-list_uploaded_files
+print_uploaded_files
