@@ -50,11 +50,12 @@ print_uploaded_files() {
 # - filename
 # - url
 # - uploaded_at
+# - expiration_time
 # Arguments given to this function are passed to `gum table`
 pick_log_line() {
   # CSV format is:
   # filename; url; token; uploaded_at; expiration_time
-  cut -d';' -f1-2,4 "$ZXZ_LOG_FILE" \
+  cut -d';' -f1-2,4,5 "$ZXZ_LOG_FILE" \
     | gum table \
       --separator=';' \
       --height 10 \

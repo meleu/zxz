@@ -34,7 +34,7 @@ confirm_url_available() {
       return 0
       ;;
     404)
-      echo "- <$url>: resource not found in the server (HTTP status ${response_status})." >&2
+      echo "- <$url>: resource deleted/not-found (HTTP status ${response_status})." >&2
       ;;
     '')
       echo "- <$url>: failed to get the HTTP status." >&2

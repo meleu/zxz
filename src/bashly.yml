@@ -1,6 +1,6 @@
 name: zxz
 help: a CLI to interact with <https://0x0.st/>.
-version: 0.1.1
+version: 0.1.2
 footer: |
   Credits:
     zxz repository: <https://github.com/meleu/zxz>
@@ -35,6 +35,14 @@ commands:
         default: "https://0x0.st/"
         help: Upload to a custom 0x0 instance server.
         validate: http_url
+      - long: --copy-url
+        short: -c
+        help: After successfully uploading the file, copy the URL to clipboard.
+      - long: --retention-hours
+        short: -r
+        arg: retention_hours
+        help: Set the amount of hours you want the file to be available.
+        validate: integer
     examples:
       - zxz upload <filename>
       - zxz upload <filename> --secret

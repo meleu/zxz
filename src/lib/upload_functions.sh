@@ -1,18 +1,21 @@
 upload_command() {
-  local file="$1"
-  [[ -z "$file" ]] && return 1
+  [[ -z "$1" ]] && return 1
 
+  local file="$1"
   local host="$2"
-  local upload_as_secret="$3"
-  local uploaded_file_url
+  local is_secret="${ARGS[--secret]}"
+  local retention_hours="${ARGS['--retention-hours']}"
+
   # shellcheck disable=2155
   local response_header_file="$(mktemp)"
   local curl_args=(
     --dump-header "$response_header_file"
     --form "file=@$file"
   )
+  local uploaded_file_url
 
-  [[ "$upload_as_secret" == 1 ]] && curl_args+=(--form secret=)
+  [[ "$is_secret" == 1 ]] && curl_args+=(--form secret=)
+  [[ "$retention_hours" -gt 0 ]] && curl_args+=(--form expires="$retention_hours")
 
   uploaded_file_url="$(cmd_curl "${curl_args[@]}" "$host")"
   if [[ -z "$uploaded_file_url" ]]; then
@@ -21,6 +24,8 @@ upload_command() {
   fi
 
   echo "$uploaded_file_url"
+  [[ "${ARGS['--copy-url']}" == 1 ]] && copy_to_clipboard "$uploaded_file_url"
+
   log_uploaded_file "$response_header_file" "$file" "$uploaded_file_url"
   rm -f "$response_header_file"
 }

@@ -2,3 +2,5 @@ var_aliases:
   args: ARGS
 
 strict: "set -Eeo pipefail"
+
+env: production

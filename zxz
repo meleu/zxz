@@ -91,6 +91,16 @@ zxz_upload_usage() {
     printf "    %s\n" "Default: https://0x0.st/"
     echo
 
+    # :flag.usage
+    printf "  %s\n" "--copy-url, -c"
+    printf "    After successfully uploading the file, copy the URL to clipboard.\n"
+    echo
+
+    # :flag.usage
+    printf "  %s\n" "--retention-hours, -r RETENTION_HOURS"
+    printf "    Set the amount of hours you want the file to be available.\n"
+    echo
+
     # :command.usage_fixed_flags
     printf "  %s\n" "--help, -h"
     printf "    Show this help\n"
@@ -260,7 +270,7 @@ cmd_gum_spin() {
     -- "${command[@]}"
 }
 
-# src/lib/delete_command.sh
+# src/lib/delete_functions.sh
 delete_command() {
   local chosen_url
   local token
@@ -297,7 +307,7 @@ confirm_url_available() {
       return 0
       ;;
     404)
-      echo "- <$url>: resource not found in the server (HTTP status ${response_status})." >&2
+      echo "- <$url>: resource deleted/not-found (HTTP status ${response_status})." >&2
       ;;
     '')
       echo "- <$url>: failed to get the HTTP status." >&2
@@ -321,25 +331,17 @@ url_http_status() {
     | cut -d' ' -f2
 }
 
-# src/lib/list_command.sh
-list_command() {
+# src/lib/list_functions.sh
+pick_and_copy_url() {
   local url
+  url="$(pick_url_from_log)" \
+    && copy_to_clipboard "$url" \
+    && echo "Copied to clipboard: $url" >&2
+}
 
-  if [[ "${ARGS['--copy-url']}" == 1 ]]; then
-    url="$(pick_url_from_log)" \
-      && copy_to_clipboard "$url" \
-      && echo "Copied to clipboard: $url" >&2
-    return
-  fi
-
-  if [[ "${ARGS['--browser']}" == 1 ]]; then
-    url="$(pick_url_from_log)" && open_browser "$url"
-    return
-  fi
-
-  [[ "${ARGS['--update']}" == 1 ]] && update_log_file
-
-  print_uploaded_files
+pick_and_open_url() {
+  local url
+  url="$(pick_url_from_log)" && open_browser "$url"
 }
 
 open_browser() {
@@ -417,11 +419,12 @@ print_uploaded_files() {
 # - filename
 # - url
 # - uploaded_at
+# - expiration_time
 # Arguments given to this function are passed to `gum table`
 pick_log_line() {
   # CSV format is:
   # filename; url; token; uploaded_at; expiration_time
-  cut -d';' -f1-2,4 "$ZXZ_LOG_FILE" \
+  cut -d';' -f1-2,4,5 "$ZXZ_LOG_FILE" \
     | gum table \
       --separator=';' \
       --height 10 \
@@ -477,22 +480,25 @@ get_http_header_value() {
   echo "$header_value"
 }
 
-# src/lib/upload_command.sh
+# src/lib/upload_functions.sh
 upload_command() {
-  local file="$1"
-  [[ -z "$file" ]] && return 1
+  [[ -z "$1" ]] && return 1
 
+  local file="$1"
   local host="$2"
-  local upload_as_secret="$3"
-  local uploaded_file_url
+  local is_secret="${ARGS[--secret]}"
+  local retention_hours="${ARGS['--retention-hours']}"
+
   # shellcheck disable=2155
   local response_header_file="$(mktemp)"
   local curl_args=(
     --dump-header "$response_header_file"
     --form "file=@$file"
   )
+  local uploaded_file_url
 
-  [[ "$upload_as_secret" == 1 ]] && curl_args+=(--form secret=)
+  [[ "$is_secret" == 1 ]] && curl_args+=(--form secret=)
+  [[ "$retention_hours" -gt 0 ]] && curl_args+=(--form expires="$retention_hours")
 
   uploaded_file_url="$(cmd_curl "${curl_args[@]}" "$host")"
   if [[ -z "$uploaded_file_url" ]]; then
@@ -501,6 +507,8 @@ upload_command() {
   fi
 
   echo "$uploaded_file_url"
+  [[ "${ARGS['--copy-url']}" == 1 ]] && copy_to_clipboard "$uploaded_file_url"
+
   log_uploaded_file "$response_header_file" "$file" "$uploaded_file_url"
   rm -f "$response_header_file"
 }
@@ -516,12 +524,17 @@ validate_http_url() {
   [[ $1 =~ $regex_http_url ]] || echo "must be a valid http URL"
 }
 
+# src/lib/validations/validate_integer.sh
+validate_integer() {
+  [[ "$1" =~ ^[0-9]+$ ]] || echo "must be an integer"
+}
+
 # :command.command_functions
 # :command.function
 zxz_upload_command() {
 
   # src/upload_command.sh
-  upload_command "${ARGS[file]}" "${ARGS[--server]}" "${ARGS[--secret]}"
+  upload_command "${ARGS[file]}" "${ARGS[--server]}"
 
 }
 
@@ -529,7 +542,19 @@ zxz_upload_command() {
 zxz_list_command() {
 
   # src/list_command.sh
-  list_command
+  if [[ "${ARGS['--copy-url']}" == 1 ]]; then
+    pick_and_copy_url
+    return
+  fi
+
+  if [[ "${ARGS['--browser']}" == 1 ]]; then
+    pick_and_open_url
+    return
+  fi
+
+  [[ "${ARGS['--update']}" == 1 ]] && update_log_file
+
+  print_uploaded_files
 
 }
 
@@ -728,6 +753,28 @@ zxz_upload_parse_requirements() {
         fi
         ;;
 
+      # :flag.case
+      --copy-url | -c)
+
+        # :flag.case_no_arg
+        args['--copy-url']=1
+        shift
+        ;;
+
+      # :flag.case
+      --retention-hours | -r)
+
+        # :flag.case_arg
+        if [[ -n ${2+x} ]]; then
+          args['--retention-hours']="$2"
+          shift
+          shift
+        else
+          printf "%s\n" "--retention-hours requires an argument: --retention-hours, -r RETENTION_HOURS" >&2
+          exit 1
+        fi
+        ;;
+
       -?*)
         printf "invalid option: %s\n" "$key" >&2
         exit 1
@@ -770,6 +817,12 @@ zxz_upload_parse_requirements() {
   # :flag.validations
   if [[ -v args['--server'] && -n $(validate_http_url "${args['--server']:-}") ]]; then
     printf "validation error in %s:\n%s\n" "--server, -S SERVER" "$(validate_http_url "${args['--server']:-}")" >&2
+    exit 1
+  fi
+
+  # :flag.validations
+  if [[ -v args['--retention-hours'] && -n $(validate_integer "${args['--retention-hours']:-}") ]]; then
+    printf "validation error in %s:\n%s\n" "--retention-hours, -r RETENTION_HOURS" "$(validate_integer "${args['--retention-hours']:-}")" >&2
     exit 1
   fi
 
@@ -890,7 +943,7 @@ zxz_delete_parse_requirements() {
 
 # :command.initialize
 initialize() {
-  version="0.1.0"
+  version="0.1.2"
   long_usage=''
   set -Eeo pipefail
 
