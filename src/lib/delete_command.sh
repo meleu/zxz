@@ -12,7 +12,7 @@ delete_command() {
     return 1
   fi
 
-  "${CURL[@]}" \
+  cmd_curl \
     --output /dev/null \
     --form token="$token" \
     --form delete= \
@@ -36,6 +36,9 @@ confirm_url_available() {
     404)
       echo "- <$url>: resource not found in the server (HTTP status ${response_status})." >&2
       ;;
+    '')
+      echo "- <$url>: failed to get the HTTP status." >&2
+      ;;
     *)
       echo "- <$url>: returned HTTP status ${response_status}." >&2
       ;;
@@ -50,7 +53,7 @@ url_http_status() {
   local url="$1"
 
   # getting only the headers and getting the http status code
-  "${CURL[@]}" --head "$url" \
+  cmd_curl --head "$url" \
     | head -1 \
     | cut -d' ' -f2
 }

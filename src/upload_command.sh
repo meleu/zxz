@@ -1,1 +1,1 @@
-upload_command
+upload_command "${ARGS[file]}" "${ARGS[--server]}" "${ARGS[--secret]}"

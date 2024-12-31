@@ -1,11 +1,11 @@
 name: zxz
-help: a CLI to interact with <https://0x0.st/>
-version: 0.1.0
+help: a CLI to interact with <https://0x0.st/>.
+version: 0.1.1
 footer: |
   Credits:
-    zxz repository: https://github.com/meleu/zxz
+    zxz repository: <https://github.com/meleu/zxz>
 
-    The https://0x0.st/ is a service maintained by Mia Herkt,
+    The <https://0x0.st/> is a service maintained by Mia Herkt,
     consider supporting them financially (check the webpage).
 
 dependencies:
@@ -17,46 +17,58 @@ dependencies:
 
 commands:
   - name: upload
-    help: "Upload FILE to https://0x0.st/"
+    alias: [up, u]
+    help: Upload FILE.
     default: true
-
     args:
       - name: file
         required: true
-        help: "file to upload (max file size: 512MB)"
+        help: "file to upload (max file size: 512MB)."
         validate: file_exists
-
     flags:
       - long: --secret
         short: -s
-        help: Ask the server to generate a longer and hard-to-guess URL
-
+        help: Ask the server to generate a longer and hard-to-guess URL.
       - long: --server
         short: -S
         arg: server
         default: "https://0x0.st/"
-        help: Upload to a custom 0x0 instance server
+        help: Upload to a custom 0x0 instance server.
         validate: http_url
+    examples:
+      - zxz upload <filename>
+      - zxz upload <filename> --secret
+      - zxz upload <filename> --server https://<custom-0x0-instance>
 
   - name: list
     alias: [ls, l]
-    help: List the files you already uploaded
+    help: List the files you already uploaded.
     flags:
       - long: --update
         short: -u
         help: Update the list of uploaded files removing the unavailable ones.
+      - long: --browser
+        short: -b
+        help: Pick a file from the list and open in your browser.
+      - long: --copy-url
+        short: -c
+        help: Pick a file from the list and copy URL to clipboard.
 
   - name: delete
     alias: [del, d]
     help: Delete an uploaded file from the remote server.
 
-examples:
-  - zxz <filename>
+examples: |-
+  The most simple usage is when you just want to upload a file:
+  $ zxz <filename>
 
 variables:
   - name: USER_AGENT
     value: zxz/$version - https://github.com/meleu/zxz
   - name: LOG_DIR
     value: "${XDG_DATA_HOME:-${HOME}/.local/share}/zxz"
-  - name: LOG_FILE
-    value: "${LOG_DIR}/uploads.log"
+
+environment_variables:
+  - name: ZXZ_LOG_FILE
+    help: Path to the log file.
+    default: "${LOG_DIR}/uploads.log"
