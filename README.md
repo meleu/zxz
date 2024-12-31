@@ -10,7 +10,13 @@ Turns out that the resulting program is actually useful. :)
 
 ## Usage
 
+You should check the `zxz --help` output to see all the available options.
+
+Here's the most common usage.
+
 ### Uploading a file
+
+#### simple way
 
 The most basic usage is to simply upload a file:
 
@@ -18,13 +24,15 @@ The most basic usage is to simply upload a file:
 zxz MY_FILE
 ```
 
-It uploads `MY_FILE` to https://0x0.st/ and prints the URL where the file is available.
+It uploads `MY_FILE` to <https://0x0.st/> and prints the URL where the file is available.
 
-If you want to copy the URL to the clipboard right after uploading a file:
+#### upload and copy URL to clipboard
 
 ```bash
 zxz --copy-url MY_FILE
 ```
+
+#### upload and set a retention time
 
 If you want your uploaded file to be available only for 2 hours, you can set the retention time:
 
@@ -40,7 +48,7 @@ The `zxz` also
 - allows you to delete a file you uploaded: `zxz delete`
 - and other conveniences, e.g. copy the URL right after uploading a file: `zxz upload <filename> --copy-url`
 
-#### Missing features
+### Missing features
 
 The 0x0.st service allows you to  the **expiration time**, but I'm not interested in working on this feature.
 
@@ -48,18 +56,21 @@ They say in the official page that 0x0.st can copy a file from another URL, but 
 
 ## Installation
 
-Just get the [bashly generated `zxz` script](./zxz) and put it in your PATH. Example:
+Just get the [bashly generated `zxz` script](./zxz), put it in your PATH and make it executable.
+
+Example: assuming `~/.local/bin` is present in your PATH
 
 ```bash
-# assuming ~/.local/bin is present in your PATH
+# download it
 curl \
   -o ~/.local/bin/zxz \
   "https://raw.githubusercontent.com/meleu/zxz/refs/heads/main/zxz"
 
-# if you want it system wide (requires `sudo`)
-sudo curl \
-  -o /usr/local/bin/zxz \
-  "https://raw.githubusercontent.com/meleu/zxz/refs/heads/main/zxz"
+# make it executable
+chmod +x ~/.local/bin/zxz
+
+# use it
+zxz --help
 ```
 
 You can also clone this repo and then `make install`:
@@ -72,9 +83,9 @@ make install
 
 ## Credits
 
-### https://0x0.st/
+### <https://0x0.st/>
 
-The <https://0x0.st/> service is maintained by Mia Herkt. If you like it, consider supporting them financially (information in [the bottom of the 0x0.st webpage](https://0x0.st/)).
+The <https://0x0.st/> service is maintained by Mia Herkt ([in this repository](https://git.0x0.st/mia/0x0)). If you like it, consider supporting them financially (information in [the bottom of the 0x0.st webpage](https://0x0.st/)).
 
 ### Bashly
 
