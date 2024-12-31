@@ -16,6 +16,12 @@ dependencies:
   - grep
 
 commands:
+  - name: help
+    help: Show help about a command
+    args:
+      - name: command
+        help: Help subject
+
   - name: upload
     alias: [up, u]
     help: Upload FILE.
