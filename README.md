@@ -1,18 +1,28 @@
-# zxz - a CLI to interact with <https://0x0.st>
+# zxz - a CLI for quick file sharing via <https://0x0.st>
 
 The <https://0x0.st> is a simple "Temporary file hoster", useful when you want to quickly share a file over the internet.
 
-This projects provides a CLI to _almost_ all 0x0 features and some more
+The `zxz` is a handy CLI designed to make your interactions with 0x0.st easier.
 
-I've created this mainly to try out [Bashly](https://bashly.dannyb.co/) - a Bash command line framework and CLI generator.
+I've created this mainly to try out [Bashly - a Bash command line framework and CLI generator](https://bashly.dannyb.co/), and turns out that the result became genuinely useful.
 
-Turns out that the resulting program is actually useful. :)
+## Table of Contents
+
+- [Usage](#usage)
+  - [Uploading a File](#uploading-a-file)
+    - [Simple Way](#simple-way)
+    - [Upload and Copy URL to Clipboard](#upload-and-copy-url-to-clipboard)
+    - [Upload with Retention Time](#upload-with-retention-time)
+  - [Other Features](#other-features)
+  - [Missing Features](#missing-features)
+- [Installation](#installation)
+- [Credits](#credits)
 
 ## Usage
 
 You should check the `zxz --help` output to see all the available options.
 
-Here's the most common usage.
+Here's the most common usage scenarios.
 
 ### Uploading a file
 
@@ -27,6 +37,8 @@ zxz MY_FILE
 It uploads `MY_FILE` to <https://0x0.st/> and prints the URL where the file is available.
 
 #### upload and copy URL to clipboard
+
+Automatically copy the URL right after uploading the file:
 
 ```bash
 zxz --copy-url MY_FILE
@@ -50,7 +62,7 @@ The `zxz` also
 
 ### Missing features
 
-The 0x0.st service allows you to  the **expiration time**, but I'm not interested in working on this feature.
+The 0x0.st service allows you to change the **expiration time**, but I'm not interested in working on this feature.
 
 They say in the official page that 0x0.st can copy a file from another URL, but I wasn't able to make it work (and also not interested).
 
