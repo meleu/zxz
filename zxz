@@ -48,7 +48,7 @@ zxz_usage() {
     printf "  The most simple usage is when you just want to upload a file:\n  $ zxz <filename>\n"
     echo
 
-    printf "Credits:\n  zxz repository: <https://github.com/meleu/zxz>\n\n  The <https://0x0.st/> is a service maintained by Mia Herkt,\n  consider supporting them financially (check the webpage).\n\n"
+    printf "Credits:\n  zxz repository: <https://github.com/meleu/zxz>\n\n  The <https://0x0.st/> is a service maintained by Mia Herkt,\n  (repository: <https://git.0x0.st/mia/0x0>).\n\n"
     echo
 
   fi
@@ -228,6 +228,27 @@ cmd_gum_spin() {
     -- "${command[@]}"
 }
 
+cmd_copy_to_clipboard() {
+  # NOTE: I don't want to list xclip/pbcopy as mandatory dependencies.
+  if command -v xclip &> /dev/null; then
+    echo -n "$@" | xclip -selection clipboard
+  elif command -v pbcopy &> /dev/null; then
+    echo -n "$@" | pbcopy
+  else
+    echo "No clipboard manager found. Copy the text manually." >&2
+  fi
+}
+
+cmd_open_browser() {
+  if command -v open &> /dev/null; then
+    open "$1"
+  elif command -v xdg-open &> /dev/null; then
+    xdg-open "$1"
+  else
+    echo "Unable to open the browser. Open the URL manually." >&2
+  fi
+}
+
 delete_command() {
   local chosen_url
   local token
@@ -291,35 +312,13 @@ url_http_status() {
 pick_and_copy_url() {
   local url
   url="$(pick_url_from_log)" \
-    && copy_to_clipboard "$url" \
+    && cmd_copy_to_clipboard "$url" \
     && echo "Copied to clipboard: $url" >&2
 }
 
 pick_and_open_url() {
   local url
-  url="$(pick_url_from_log)" && open_browser "$url"
-}
-
-open_browser() {
-  case "$OSTYPE" in
-    darwin*)
-      open "$1"
-      ;;
-    *) # Hopefully Linux
-      xdg-open "$1"
-      ;;
-  esac
-}
-
-copy_to_clipboard() {
-  case "$OSTYPE" in
-    darwin*)
-      echo -n "$1" | pbcopy
-      ;;
-    *) # Hopefully Linux
-      echo -n "$1" | xclip -selection clipboard
-      ;;
-  esac
+  url="$(pick_url_from_log)" && cmd_open_browser "$url"
 }
 
 create_log_file() {
@@ -461,7 +460,7 @@ upload_command() {
   fi
 
   echo "$uploaded_file_url"
-  [[ "${ARGS['--copy-url']}" == 1 ]] && copy_to_clipboard "$uploaded_file_url"
+  [[ "${ARGS['--copy-url']}" == 1 ]] && cmd_copy_to_clipboard "$uploaded_file_url"
 
   log_uploaded_file "$response_header_file" "$file" "$uploaded_file_url"
   rm -f "$response_header_file"
@@ -562,18 +561,18 @@ parse_requirements() {
 
   missing_deps=
 
-  if ! command -v curl >/dev/null 2>&1; then
-    printf "missing dependency: curl\n" >&2
-    missing_deps=1
-  else
-    deps['curl']="$(command -v curl | head -n1)"
-  fi
-
   if ! command -v gum >/dev/null 2>&1; then
     printf "missing dependency: gum\n" >&2
     missing_deps=1
   else
     deps['gum']="$(command -v gum | head -n1)"
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    printf "missing dependency: curl\n" >&2
+    missing_deps=1
+  else
+    deps['curl']="$(command -v curl | head -n1)"
   fi
 
   if ! command -v cut >/dev/null 2>&1; then

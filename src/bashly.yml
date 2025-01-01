@@ -6,11 +6,11 @@ footer: |
     zxz repository: <https://github.com/meleu/zxz>
 
     The <https://0x0.st/> is a service maintained by Mia Herkt,
-    consider supporting them financially (check the webpage).
+    (repository: <https://git.0x0.st/mia/0x0>).
 
 dependencies:
-  - curl
   - gum
+  - curl
   - cut
   - date
   - grep

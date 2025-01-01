@@ -24,7 +24,7 @@ upload_command() {
   fi
 
   echo "$uploaded_file_url"
-  [[ "${ARGS['--copy-url']}" == 1 ]] && copy_to_clipboard "$uploaded_file_url"
+  [[ "${ARGS['--copy-url']}" == 1 ]] && cmd_copy_to_clipboard "$uploaded_file_url"
 
   log_uploaded_file "$response_header_file" "$file" "$uploaded_file_url"
   rm -f "$response_header_file"
