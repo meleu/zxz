@@ -1,6 +1,6 @@
 name: zxz
 help: a CLI to interact with <https://0x0.st/>.
-version: 0.1.2
+version: 0.1.3
 footer: |
   Credits:
     zxz repository: <https://github.com/meleu/zxz>
@@ -67,6 +67,9 @@ commands:
       - long: --copy-url
         short: -c
         help: Pick a file from the list and copy URL to clipboard.
+      - long: --full
+        short: -f
+        help: Show full information from the logs (including token and expiration_time)
 
   - name: delete
     alias: [del, d]

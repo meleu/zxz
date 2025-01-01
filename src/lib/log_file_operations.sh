@@ -55,12 +55,20 @@ print_uploaded_files() {
 pick_log_line() {
   # CSV format is:
   # filename; url; token; uploaded_at; expiration_time
-  cut -d';' -f1-2,4,5 "$ZXZ_LOG_FILE" \
+  local cut_fields='1-2,4'
+  local gum_widths='20,48,25'
+
+  if [[ "${ARGS['--full']}" == 1 ]]; then
+    cut_fields='1-5'
+    gum_widths='20,48,43,25,25'
+  fi
+
+  cut -d';' -f"$cut_fields" "$ZXZ_LOG_FILE" \
     | gum table \
       --separator=';' \
       --height 10 \
       --border=rounded \
-      --widths=20,48,25 \
+      --widths="$gum_widths" \
       "$@"
 }
 

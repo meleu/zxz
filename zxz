@@ -152,6 +152,10 @@ zxz_list_usage() {
     printf "    Pick a file from the list and copy URL to clipboard.\n"
     echo
 
+    printf "  %s\n" "--full, -f"
+    printf "    Show full information from the logs (including token and expiration_time)\n"
+    echo
+
     printf "  %s\n" "--help, -h"
     printf "    Show this help\n"
     echo
@@ -378,12 +382,20 @@ print_uploaded_files() {
 pick_log_line() {
   # CSV format is:
   # filename; url; token; uploaded_at; expiration_time
-  cut -d';' -f1-2,4,5 "$ZXZ_LOG_FILE" \
+  local cut_fields='1-2,4'
+  local gum_widths='20,48,25'
+
+  if [[ "${ARGS['--full']}" == 1 ]]; then
+    cut_fields='1-5'
+    gum_widths='20,48,43,25,25'
+  fi
+
+  cut -d';' -f"$cut_fields" "$ZXZ_LOG_FILE" \
     | gum table \
       --separator=';' \
       --height 10 \
       --border=rounded \
-      --widths=20,48,25 \
+      --widths="$gum_widths" \
       "$@"
 }
 
@@ -856,6 +868,12 @@ zxz_list_parse_requirements() {
       --copy-url | -c)
 
         args['--copy-url']=1
+        shift
+        ;;
+
+      --full | -f)
+
+        args['--full']=1
         shift
         ;;
 
