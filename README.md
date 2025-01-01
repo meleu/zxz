@@ -10,9 +10,6 @@ I've created this mainly to try out [Bashly - a Bash command line framework and 
 
 - [Usage](#usage)
   - [Uploading a File](#uploading-a-file)
-    - [Simple Way](#simple-way)
-    - [Upload and Copy URL to Clipboard](#upload-and-copy-url-to-clipboard)
-    - [Upload with Retention Time](#upload-with-retention-time)
   - [Other Features](#other-features)
   - [Missing Features](#missing-features)
 - [Installation](#installation)
@@ -20,7 +17,22 @@ I've created this mainly to try out [Bashly - a Bash command line framework and 
 
 ## Usage
 
-You should check the `zxz --help` output to see all the available options.
+From `zxz --help`:
+
+```
+zxz - a CLI to interact with <https://0x0.st/>.
+
+Usage:
+  zxz COMMAND
+  zxz [COMMAND] --help | -h
+  zxz --version | -v
+
+Commands:
+  help     Show help about a command
+  upload   Upload FILE. (default)
+  list     List the files you already uploaded.
+  delete   Delete an uploaded file from the remote server.
+```
 
 Here's the most common usage scenarios.
 
@@ -62,7 +74,7 @@ The `zxz` also
 
 ### Missing features
 
-The 0x0.st service allows you to change the **expiration time**, but I'm not interested in working on this feature.
+The 0x0.st service allows you to **change** the expiration time, but I'm not interested in working on this feature.
 
 They say in the official page that 0x0.st can copy a file from another URL, but I wasn't able to make it work (and also not interested).
 
