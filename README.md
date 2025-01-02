@@ -107,9 +107,9 @@ make install
 
 ## Credits
 
-### <https://0x0.st/>
+### The Null Pointer
 
-The <https://0x0.st/> service is maintained by Mia Herkt ([in this repository](https://git.0x0.st/mia/0x0)). If you like it, consider supporting them financially (information in [the bottom of the 0x0.st webpage](https://0x0.st/)).
+The 0x0.st/ service is maintained by Mia Herkt ([in this repository](https://git.0x0.st/mia/0x0)). If you like it, consider supporting them financially (information in [the bottom of the 0x0.st webpage](https://0x0.st/)).
 
 ### Bashly
 
